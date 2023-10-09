@@ -24,36 +24,49 @@ pub fn initialize(filename: &str) {
     for record in reader.records() {
         let record_length = record.as_ref().expect("Failed reading records").len();
         let rec = record.expect("Failed parsing record");
-        for i in 0..record_length - 1 {
+        for i in 0..record_length {
             match data_for_enums.get_mut(&headers[i]) {
                 Some(values) => values.insert(rec[i].to_string()),
                 None => panic!("Failed setting record"),
             };
         }
     }
-    fs::create_dir(".temp").expect("couldn't create temporary directory");
-    File::create(".temp/metadata").expect("couldn't create temporary metadata file");
+    fs::create_dir(".temp");
     let column_sizes = headers
         .into_iter()
         .map(|header| {
-            log2!(data_for_enums
+            let log_val = log2!(data_for_enums
                 .get(header)
                 .expect("Couldn't find column")
-                .len())
+                .len());
+            if log_val == 0 {
+                1
+            } else {
+                log_val
+            }
         })
         .collect::<Vec<_>>();
     fs::write(
         ".temp/metadata",
         format!(
-            "buffer size: {}\ncolumns indivial size: {:?}",
+            "filename: {}\nbuffer size: {}\ncolumns indivial size: {:?}",
+            filename,
             column_sizes.iter().sum::<usize>(),
             column_sizes
         ),
     )
     .expect("couldn't write temporary metadata");
-    File::create(".temp/enums.rs").expect("couldn't create enums file");
-    let mut enums_file_contents: String = String::from("");
+    let mut enums_file_contents: String;
+    let mut variants: String = String::from("");
+    let mut vecs: String = String::from("");
+    let mut matches: String = String::from("");
     for (column_name, values) in data_for_enums {
+        let uppercase_column_name = column_name
+            .chars()
+            .take(1)
+            .flat_map(|c| c.to_uppercase())
+            .chain(column_name.chars().skip(1))
+            .collect::<String>();
         let values_as_vec = values
             .iter()
             .map(|val| {
@@ -64,19 +77,26 @@ pub fn initialize(filename: &str) {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
-        enums_file_contents = format!(
-            "{}\n\n{}",
-            enums_file_contents,
-            format!(
-                r#"
-              pub enum {} {{
-                {}
-              }}
-
-              "#,
-                column_name,
-                values_as_vec.join(",\n")
-            )
+        variants = format!("{}\n\t{},", variants, uppercase_column_name);
+        vecs = format!("{}\n\tlet {} = vec!{:?};", vecs, column_name, values_as_vec);
+        matches = format!(
+            "{}\n\t\tHeaders::{} => {},",
+            matches, uppercase_column_name, column_name
         );
+        enums_file_contents = format!(
+            r#"pub enum Headers {{
+  {variants}
+}}
+
+pub fn get_vec<T>(header: Headers) -> Vec<T> {{
+  {vecs}
+
+  match header{{
+    {matches}
+  }}
+}}
+"#
+        );
+        fs::write(".temp/vecs.rs", &enums_file_contents.replace(" \n", ""));
     }
 }
