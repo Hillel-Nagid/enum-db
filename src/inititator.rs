@@ -56,9 +56,9 @@ pub fn initialize(filename: &str) {
         ),
     )
     .expect("couldn't write temporary metadata");
-    let mut enums_file_contents: String;
+    let mut arrs_file_contents: String;
     let mut variants: String = String::from("");
-    let mut vecs: String = String::from("");
+    let mut arrs: String = String::from("");
     let mut matches: String = String::from("");
     for (column_name, values) in data_for_enums {
         let uppercase_column_name = column_name
@@ -78,18 +78,18 @@ pub fn initialize(filename: &str) {
             })
             .collect::<Vec<_>>();
         variants = format!("{}\n\t{},", variants, uppercase_column_name);
-        vecs = format!("{}\n\tlet {} = vec!{:?};", vecs, column_name, values_as_vec);
+        arrs = format!("{}\n\tlet {} = {:?};", arrs, column_name, values_as_vec);
         matches = format!(
             "{}\n\t\tHeaders::{} => {},",
             matches, uppercase_column_name, column_name
         );
-        enums_file_contents = format!(
+        arrs_file_contents = format!(
             r#"pub enum Headers {{
   {variants}
 }}
 
-pub fn get_vec<T>(header: Headers) -> Vec<T> {{
-  {vecs}
+pub fn get_arr<T>(header: Headers) -> [T] {{
+  {arrs}
 
   match header{{
     {matches}
@@ -97,6 +97,6 @@ pub fn get_vec<T>(header: Headers) -> Vec<T> {{
 }}
 "#
         );
-        fs::write(".temp/vecs.rs", &enums_file_contents.replace(" \n", ""));
+        fs::write(".temp/arrs.rs", &arrs_file_contents.replace(" \n", ""));
     }
 }
