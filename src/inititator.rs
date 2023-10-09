@@ -1,11 +1,13 @@
 use csv::{Reader, StringRecord};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
+
 macro_rules! log2 {
     ($val:expr) => {
-        ($val as f32).log(2f32) as usize
+        ($val as f32).log(2f32).ceil() as usize
     };
 }
+
 pub fn initialize(filename: &str) {
     let data = fs::read_to_string(filename).expect("Unable to open csv file");
     let mut reader = Reader::from_reader(data.as_bytes());
