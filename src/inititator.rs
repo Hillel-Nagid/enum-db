@@ -1,6 +1,6 @@
 use csv::{Reader, StringRecord};
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, File};
+use std::fs;
 
 macro_rules! log2 {
     ($val:expr) => {
@@ -8,8 +8,9 @@ macro_rules! log2 {
     };
 }
 
-pub fn initialize(filename: &str) {
-    let data = fs::read_to_string(filename).expect("Unable to open csv file");
+pub fn initialize(csv_filename: &str, types_filename: &str) {
+    let data = fs::read_to_string(csv_filename).expect("Unable to open csv file");
+    let types = fs::read_to_string(csv_filename).expect("Unable to open types file");
     let mut reader = Reader::from_reader(data.as_bytes());
     let headers: StringRecord;
     {
@@ -50,7 +51,7 @@ pub fn initialize(filename: &str) {
         ".temp/metadata",
         format!(
             "filename: {}\nbuffer size: {}\ncolumns indivial size: {:?}",
-            filename,
+            csv_filename,
             column_sizes.iter().sum::<usize>(),
             column_sizes
         ),
@@ -77,6 +78,10 @@ pub fn initialize(filename: &str) {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
+        let are_values_int = values_as_vec.iter().all(|val| match val.parse::<u32>() {
+            Ok(int_val) => true,
+            Err(err) => false,
+        });
         variants = format!("{}\n\t{},", variants, uppercase_column_name);
         arrs = format!("{}\n\tlet {} = {:?};", arrs, column_name, values_as_vec);
         matches = format!(

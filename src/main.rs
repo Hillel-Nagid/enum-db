@@ -1,8 +1,8 @@
 // mod builder;
 mod inititator;
 fn main() {
-    inititator::initialize("./test.csv");
-    // builder::build();
+    inititator::initialize("./test.csv", "./types.txt"); //?
+                                                         // builder::build();
     println!("Hello, world!");
 }
 // CLI tool that gets a csv file name as a parameter
